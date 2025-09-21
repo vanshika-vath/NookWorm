@@ -1,0 +1,728 @@
+<html lang="en" class="h-full bg-gray-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NookWorm List View</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital@1&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+            background-color: #f7f3f0;
+        }
+
+        .playfair-font {
+            font-family: 'Playfair Display', serif;
+        }
+        
+        .list-card {
+            background-color: #ffffff;
+            border-radius: 1.5rem;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .detail-view {
+            transition: transform 0.3s ease-in-out, opacity 0.3s ease-in-out;
+            transform: translateY(100%);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .detail-view.active {
+            transform: translateY(0);
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* Custom style for the subtle brown background of the header */
+        .header-bg {
+            background-color: #d8c2b0;
+        }
+
+        .map-container {
+            position: relative;
+            width: 100%;
+            height: 600px; /* Fixed height for scrolling */
+            overflow-y: scroll;
+            border-radius: 1.5rem;
+            
+        }
+
+        .map-marker {
+            position: absolute;
+            width: 2.5rem; /* Large enough for a touch target */
+            height: 2.5rem;
+            background-color: #4a5568; /* A darker color for visibility */
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: white;
+            border: 3px solid #f7f3f0;
+            transform: translate(-50%, -50%); /* Center the marker on the coordinates */
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .map-marker-label {
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            white-space: nowrap;
+            padding: 0.25rem 0.5rem;
+            background-color: #f7f3f0;
+            border-radius: 0.5rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: #4a5568;
+            margin-top: 0.25rem;
+        }
+
+        @keyframes flash-highlight {
+            0% { box-shadow: 0 0 0 0 rgba(185, 151, 117, 0.7); }
+            50% { box-shadow: 0 0 0 10px rgba(185, 151, 117, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(185, 151, 117, 0); }
+        }
+
+        .flash-highlight {
+            animation: flash-highlight 1s ease-out;
+        }
+    </style>
+</head>
+<body class="flex flex-col min-h-full">
+    <div class="p-4 md:p-8 mx-auto w-full max-w-2xl flex-grow" id="app-container">
+        <!-- Top Section -->
+        <header class="text-center mb-6 relative header-bg py-6 rounded-b-3xl -mx-4 md:-mx-8">
+            <h1 class="text-3xl font-bold playfair-font italic text-gray-700">find your nook</h1>
+        </header>
+
+        <!-- Navigation Buttons -->
+        <div class="flex justify-around items-center mb-6 bg-gray-200 rounded-full p-1 shadow-inner">
+            <button onclick="showView('list')" class="flex-1 py-2 text-sm font-semibold text-gray-700 rounded-full bg-white shadow-md">List View</button>
+            <button onclick="showView('map')" class="flex-1 py-2 text-sm font-semibold text-gray-500">Map View</button>
+            <button onclick="showView('quiz')" class="flex-1 py-2 text-sm font-semibold text-gray-500">Quiz</button>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="relative flex items-center mb-6">
+            <input type="text" id="search-input" placeholder="Hinted search text" class="w-full pl-10 pr-4 py-2 rounded-full border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <svg class="absolute left-3 text-gray-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+        </div>
+
+        <!-- List View -->
+        <div id="list-view" class="flex flex-col gap-8">
+            <!-- Card 1: PMU -->
+            <div id="card-Purdue Memorial Union (PMU)" class="list-card overflow-hidden">
+                <img src="https://i.imgur.com/qzEkhEl.png" alt="Purdue Memorial Union lounge area" class="w-full h-auto object-cover rounded-t-2xl">
+                <div class="p-4">
+                    <h2 class="text-lg md:text-xl font-bold text-gray-800">Purdue Memorial Union (PMU)</h2>
+                    <div class="flex items-center gap-2 text-sm text-gray-500 mb-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-green-500 mr-1"></span>
+                        <span class="text-xs">Open</span>
+                    </div>
+                    <div class="flex items-center justify-between mt-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-gray-600 flex items-center gap-1">
+                                <img src="https://i.imgur.com/bG17aIM.png" alt="Sound icon" class="w-5 h-5">
+                                Quiet
+                            </span>
+                            <span class="text-gray-600">🌡️ Cool</span>
+                            <span class="text-gray-600 flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                                    <path d="M12 22s-6-4-6-11.5a6 6 0 1 1 12 0c0 7.5-6 11.5-6 11.5z" />
+                                    <circle cx="12" cy="10" r="3" />
+                                </svg>
+                                1.2 miles
+                            </span>
+                        </div>
+                        <button class="bg-[#B99775] text-white font-semibold py-2 px-6 rounded-full hover:bg-[#A58667] transition-colors" data-spot-id="Purdue Memorial Union (PMU)">Select</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2: WALC -->
+            <div id="card-WALC" class="list-card overflow-hidden">
+                <img src="https://i.imgur.com/s3vbarj.jpeg" alt="WALC library reading area" class="w-full h-auto object-cover rounded-t-2xl">
+                <div class="p-4">
+                    <h2 class="text-lg md:text-xl font-bold text-gray-800">WALC</h2>
+                    <div class="flex items-center gap-2 text-sm text-gray-500 mb-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-green-500 mr-1"></span>
+                        <span class="text-xs">Open</span>
+                    </div>
+                    <div class="flex items-center justify-between mt-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-gray-600 flex items-center gap-1">
+                                <img src="https://i.imgur.com/bG17aIM.png" alt="Sound icon" class="w-5 h-5">
+                                Whispers
+                            </span>
+                            <span class="text-gray-600">🌡️ Neutral</span>
+                            <span class="text-gray-600 flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                                    <path d="M12 22s-6-4-6-11.5a6 6 0 1 1 12 0c0 7.5-6 11.5-6 11.5z" />
+                                    <circle cx="12" cy="10" r="3" />
+                                </svg>
+                                1.5 miles
+                            </span>
+                        </div>
+                        <button class="bg-[#B99775] text-white font-semibold py-2 px-6 rounded-full hover:bg-[#A58667] transition-colors" data-spot-id="WALC">Select</button>
+                    </div>
+                </div>
+            </div>
+
+             <!-- Card 3: Data Science and AI -->
+            <div id="card-Data Science and AI" class="list-card overflow-hidden">
+                <img src="https://i.imgur.com/VtKNNOe.jpeg" alt="Data Science and AI building study area" class="w-full h-auto object-cover rounded-t-2xl">
+                <div class="p-4">
+                    <h2 class="text-lg md:text-xl font-bold text-gray-800">Data Science and AI</h2>
+                    <div class="flex items-center gap-2 text-sm text-gray-500 mb-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-red-500 mr-1"></span>
+                        <span class="text-xs">Closed</span>
+                    </div>
+                    <div class="flex items-center justify-between mt-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-gray-600 flex items-center gap-1">
+                                <img src="https://i.imgur.com/bG17aIM.png" alt="Sound icon" class="w-5 h-5">
+                                Moderate
+                            </span>
+                            <span class="text-gray-600">🌡️ Warm</span>
+                            <span class="text-gray-600 flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                                    <path d="M12 22s-6-4-6-11.5a6 6 0 1 1 12 0c0 7.5-6 11.5-6 11.5z" />
+                                    <circle cx="12" cy="10" r="3" />
+                                </svg>
+                                0.8 miles
+                            </span>
+                        </div>
+                        <button class="bg-[#B99775] text-white font-semibold py-2 px-6 rounded-full hover:bg-[#A58667] transition-colors" data-spot-id="Data Science and AI">Select</button>
+                    </div>
+                </div>
+            </div>
+            
+            
+            <!-- Card 5: Corec -->
+            <div id="card-Corec" class="list-card overflow-hidden">
+                <img src="https://i.imgur.com/qzEkhEl.png" alt="Corec lounge area" class="w-full h-auto object-cover rounded-t-2xl">
+                <div class="p-4">
+                    <h2 class="text-lg md:text-xl font-bold text-gray-800">Corec</h2>
+                    <div class="flex items-center gap-2 text-sm text-gray-500 mb-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-red-500 mr-1"></span>
+                        <span class="text-xs">Closed</span>
+                    </div>
+                    <div class="flex items-center justify-between mt-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-gray-600 flex items-center gap-1">
+                                <img src="https://i.imgur.com/bG17aIM.png" alt="Sound icon" class="w-5 h-5">
+                                Loud
+                            </span>
+                            <span class="text-gray-600">🌡️ Cool</span>
+                            <span class="text-gray-600 flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                                    <path d="M12 22s-6-4-6-11.5a6 6 0 1 1 12 0c0 7.5-6 11.5-6 11.5z" />
+                                    <circle cx="12" cy="10" r="3" />
+                                </svg>
+                                0.3 miles
+                            </span>
+                        </div>
+                        <button class="bg-[#B99775] text-white font-semibold py-2 px-6 rounded-full hover:bg-[#A58667] transition-colors" data-spot-id="Corec">Select</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 6: Krach -->
+            <div id="card-Krach" class="list-card overflow-hidden">
+                <img src="https://i.imgur.com/0BVFlrN.png" alt="Krach library study area" class="w-full h-auto object-cover rounded-t-2xl">
+                <div class="p-4">
+                    <h2 class="text-lg md:text-xl font-bold text-gray-800">Krach</h2>
+                    <div class="flex items-center gap-2 text-sm text-gray-500 mb-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-green-500 mr-1"></span>
+                        <span class="text-xs">Open</span>
+                    </div>
+                    <div class="flex items-center justify-between mt-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-gray-600 flex items-center gap-1">
+                                <img src="https://i.imgur.com/bG17aIM.png" alt="Sound icon" class="w-5 h-5">
+                                Group work
+                            </span>
+                            <span class="text-gray-600">🌡️ Neutral</span>
+                            <span class="text-gray-600 flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                                    <path d="M12 22s-6-4-6-11.5a6 6 0 1 1 12 0c0 7.5-6 11.5-6 11.5z" />
+                                    <circle cx="12" cy="10" r="3" />
+                                </svg>
+                                0.9 miles
+                            </span>
+                        </div>
+                        <button class="bg-[#B99775] text-white font-semibold py-2 px-6 rounded-full hover:bg-[#A58667] transition-colors" data-spot-id="Krach">Select</button>
+                    </div>
+                </div>
+            </div>
+
+            
+            <!-- Card 8: Underground Library -->
+            <div id="card-Underground library" class="list-card overflow-hidden">
+                <img src="https://i.imgur.com/sBXIiV8.png" alt="Underground Library study area" class="w-full h-auto object-cover rounded-t-2xl">
+                <div class="p-4">
+                    <h2 class="text-lg md:text-xl font-bold text-gray-800">Underground Library</h2>
+                    <div class="flex items-center gap-2 text-sm text-gray-500 mb-2">
+                        <span class="w-2.5 h-2.5 rounded-full bg-green-500 mr-1"></span>
+                        <span class="text-xs">Open</span>
+                    </div>
+                    <div class="flex items-center justify-between mt-2">
+                        <div class="flex items-center gap-2">
+                            <span class="text-gray-600 flex items-center gap-1">
+                                <img src="https://i.imgur.com/bG17aIM.png" alt="Sound icon" class="w-5 h-5">
+                                Whispers
+                            </span>
+                            <span class="text-gray-600">🌡️ Cool</span>
+                            <span class="text-gray-600 flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                                    <path d="M12 22s-6-4-6-11.5a6 6 0 1 1 12 0c0 7.5-6 11.5-6 11.5z" />
+                                    <circle cx="12" cy="10" r="3" />
+                                </svg>
+                                1.8 miles
+                            </span>
+                        </div>
+                        <button class="bg-[#B99775] text-white font-semibold py-2 px-6 rounded-full hover:bg-[#A58667] transition-colors" data-spot-id="Underground library">Select</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Map View -->
+        <div id="map-view" class="hidden">
+            <div class="map-container relative h-[600px] overflow-y-scroll">
+                <img src="https://i.imgur.com/AjbghW9.png" alt="Purdue Campus Map" class="w-full h-auto">
+                <!-- WALC Marker -->
+                <div class="map-marker" data-spot-id="WALC" style="top: 50%; left: 62%;">
+                    <span class="text-xs font-bold text-white">W</span>
+                </div>
+                <!-- DSAI Marker -->
+                <div class="map-marker" data-spot-id="Data Science and AI" style="top: 48%; left: 75%;">
+                    <span class="text-xs font-bold text-white">D</span>
+                </div>
+                <!-- PMU Marker -->
+                <div class="map-marker" data-spot-id="Purdue Memorial Union (PMU)" style="top: 59%; left: 71%;">
+                    <span class="text-xs font-bold text-white">P</span>
+                </div>
+                <!-- Corec Marker -->
+                <div class="map-marker" data-spot-id="Corec" style="top: 35%; left: 30%;">
+                    <span class="text-xs font-bold text-white">C</span>
+                </div>
+                <!-- Krach Marker -->
+                <div class="map-marker" data-spot-id="Krach" style="top: 56%; left: 68%;">
+                    <span class="text-xs font-bold text-white">K</span>
+                </div>
+                <!-- Underground Marker -->
+                <div class="map-marker" data-spot-id="Underground library" style="top: 61%; left: 61%;">
+                    <span class="text-xs font-bold text-white">U</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quiz View -->
+        <div id="quiz-view" class="hidden p-6 bg-white rounded-3xl shadow-lg">
+            <h2 class="text-2xl md:text-3xl font-bold text-gray-800 mb-4">Find Your Perfect Nook</h2>
+            <p class="text-gray-600 mb-8">Answer a few questions to find the best study spot for you.</p>
+
+            <div class="mb-6">
+                <label for="noise-level" class="block text-lg font-medium text-gray-700 mb-2">How loud would you like the environment?</label>
+                <select id="noise-level" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-full bg-gray-100 shadow-inner">
+                    <option value="quiet">Quiet</option>
+                    <option value="whispers">Whispers</option>
+                    <option value="moderate">Moderate</option>
+                    <option value="group-work">Group work</option>
+                    <option value="loud">Loud</option>
+                </select>
+            </div>
+            
+            <div class="mb-6">
+                <label for="busyness" class="block text-lg font-medium text-gray-700 mb-2">How busy would you like it to be?</label>
+                <select id="busyness" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-full bg-gray-100 shadow-inner">
+                    <option value="very-busy">Very Busy</option>
+                    <option value="moderately-busy">Moderately Busy</option>
+                    <option value="lightly-busy">Lightly Busy</option>
+                    <option value="not-busy">Not Busy</option>
+                </select>
+            </div>
+            
+            <div class="mb-6">
+                <label for="time" class="block text-lg font-medium text-gray-700 mb-2">What is your preferred time to go?</label>
+                <select id="time" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-full bg-gray-100 shadow-inner">
+                    <option value="morning">Morning (6am - 9am)</option>
+                    <option value="mid-morning">Mid-Morning (9am - 12pm)</option>
+                    <option value="afternoon">Afternoon (12pm - 3pm)</option>
+                    <option value="late-afternoon">Late Afternoon (3pm - 6pm)</option>
+                    <option value="evening">Evening (6pm - 9pm)</option>
+                    <option value="night">Night (9pm - 12am)</option>
+                    <option value="late-night">Late Night (12am - 3am)</option>
+                    <option value="early-morning">Early Morning (3am - 6am)</option>
+                </select>
+            </div>
+
+            <div class="mb-6">
+                <label for="temperature" class="block text-lg font-medium text-gray-700 mb-2">How warm would you like the environment?</label>
+                <select id="temperature" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-full bg-gray-100 shadow-inner">
+                    <option value="cold">Cold</option>
+                    <option value="cool">Cool</option>
+                    <option value="neutral">Neutral</option>
+                    <option value="warm">Warm</option>
+                    <option value="hot">Hot</option>
+                </select>
+            </div>
+
+            <div class="mb-6">
+                <label for="amenities" class="block text-lg font-medium text-gray-700 mb-2">Rank your preferred amenities (1st to 3rd choice):</label>
+                <div class="space-y-2">
+                    <div>
+                        <label for="amenity-1" class="text-gray-600 mb-1 block text-sm">1st Choice</label>
+                        <select id="amenity-1" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-full bg-gray-100 shadow-inner">
+                            <option value="">- Select an amenity -</option>
+                            <option value="outlets">Outlets</option>
+                            <option value="internet">Internet Connectivity</option>
+                            <option value="food">Coffee/Food</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="amenity-2" class="text-gray-600 mb-1 block text-sm">2nd Choice</label>
+                        <select id="amenity-2" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-full bg-gray-100 shadow-inner">
+                            <option value="">- Select an amenity -</option>
+                            <option value="outlets">Outlets</option>
+                            <option value="internet">Internet Connectivity</option>
+                            <option value="food">Coffee/Food</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="amenity-3" class="text-gray-600 mb-1 block text-sm">3rd Choice</label>
+                        <select id="amenity-3" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-full bg-gray-100 shadow-inner">
+                            <option value="">- Select an amenity -</option>
+                            <option value="outlets">Outlets</option>
+                            <option value="internet">Internet Connectivity</option>
+                            <option value="food">Coffee/Food</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <button id="find-nook-btn" class="w-full bg-[#B99775] text-white font-semibold py-3 rounded-full hover:bg-blue-700 transition-colors mt-4">Find My Nook</button>
+        </div>
+    </div>
+
+    <!-- Detail View -->
+    <div id="detail-view" class="fixed inset-0 bg-white z-50 detail-view">
+        <div class="relative w-full h-1/2 md:h-2/3 lg:h-3/4 bg-gray-300" id="detail-image-container">
+            <img id="detail-image" src="" alt="Study spot detail image" class="w-full h-full object-cover">
+            <div class="absolute inset-0 bg-black bg-opacity-40 flex items-end p-6 md:p-10">
+                <h1 id="detail-title" class="text-white text-3xl md:text-5xl font-bold"></h1>
+            </div>
+            <button id="hide-detail-btn" class="absolute top-4 left-4 text-white text-4xl p-2 rounded-full bg-black bg-opacity-30 hover:bg-opacity-50 transition-all">
+                &larr;
+            </button>
+            <button id="add-favorite-btn" class="absolute top-4 right-4 text-white text-4xl p-2 rounded-full bg-black bg-opacity-30 hover:bg-opacity-50 transition-all">
+                &hearts;
+            </button>
+        </div>
+        <div class="p-6 md:p-10">
+            <!-- New tags section -->
+            <div class="mb-4">
+                <h3 class="text-xl font-bold text-gray-800 mb-2">Tags</h3>
+                <div id="tags-container" class="flex flex-wrap gap-2"></div>
+            </div>
+            <!-- AI Overview Section -->
+            <div class="mb-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-2">AI Overview</h3>
+                <div id="ai-overview" class="bg-gray-100 p-4 rounded-lg text-gray-700 italic"></div>
+            </div>
+            <!-- Additional Details Section -->
+            <div class="mb-6">
+                <h3 class="text-xl font-bold text-gray-800 mb-2">Amenities & Environment</h3>
+                <div class="space-y-4 text-sm text-gray-700">
+                    <div id="connectivity-details"></div>
+                    <div id="outlets-details"></div>
+                    <div id="music-details"></div>
+                </div>
+            </div>
+            <!-- Reviews Section -->
+            <div>
+                <h3 class="text-xl font-bold text-gray-800 mb-2">Reviews</h3>
+                <div id="reviews-container" class="space-y-4"></div>
+            </div>
+            <!-- Additional spot details can go here -->
+            <p class="text-sm md:text-base text-gray-700">More information about the study spot, like amenities, and a detailed description would be here.</p>
+        </div>
+    </div>
+
+    <!-- Message Box -->
+    <div id="messageBox" class="fixed top-5 left-1/2 transform -translate-x-1/2 p-4 rounded-lg shadow-xl text-white font-semibold transition-all duration-300 ease-in-out -translate-y-20 opacity-0 z-50">
+        Message
+    </div>
+
+    <script>
+        const messageBox = document.getElementById('messageBox');
+        const listView = document.getElementById('list-view');
+        const mapView = document.getElementById('map-view');
+        const quizView = document.getElementById('quiz-view');
+        const navButtons = document.querySelectorAll('.flex > button');
+        const detailView = document.getElementById('detail-view');
+        const detailImage = document.getElementById('detail-image');
+        const detailTitle = document.getElementById('detail-title');
+        const tagsContainer = document.getElementById('tags-container');
+        const aiOverviewContainer = document.getElementById('ai-overview');
+        const reviewsContainer = document.getElementById('reviews-container');
+        const connectivityDetails = document.getElementById('connectivity-details');
+        const outletsDetails = document.getElementById('outlets-details');
+        const musicDetails = document.getElementById('music-details');
+        const appContainer = document.getElementById('app-container');
+        const searchInput = document.getElementById('search-input');
+        const listCards = document.querySelectorAll('.list-card');
+
+        const studySpots = {
+            'Purdue Memorial Union (PMU)': {
+                name: 'Purdue Memorial Union (PMU)',
+                imageUrl: 'https://i.imgur.com/qzEkhEl.png',
+                tags: ['comfy', 'food options', 'bustling', 'popular'],
+                aiOverview: 'Users consistently praise the PMU for its lively atmosphere and convenient access to food. The space is often described as a great place for collaborative work and group meetings, though it can get very busy.',
+                reviews: [
+                    { rating: 5, comment: 'Great place to grab a coffee and get some work done. It\'s usually a bit loud, but I enjoy the background chatter.' },
+                    { rating: 4, comment: 'Always a classic spot. Plenty of tables and comfortable chairs, but finding an outlet can be a challenge.' },
+                    { rating: 3, comment: 'Too noisy for me to get serious work done. Good for a quick study session between classes.' }
+                ],
+                internet: 'Fast and reliable Wi-Fi available throughout the building.',
+                outlets: 'Plentiful, but can be hard to find in the most crowded areas. Look for spots along the walls.',
+                music: 'No dedicated music, but background noise from the food court and foot traffic is constant.'
+            },
+            'WALC': {
+                name: 'WALC',
+                imageUrl: 'https://i.imgur.com/s3vbarj.jpeg',
+                tags: ['quiet', 'modern', 'bright', 'lots of outlets'],
+                aiOverview: 'Reviewers love WALC for its bright, modern design and peaceful atmosphere. It is the go-to spot for focused, individual study sessions. The ample outlets and quiet zones are frequently highlighted as major benefits.',
+                reviews: [
+                    { rating: 5, comment: 'My favorite spot on campus. Super quiet and I can always find a space with a charging port.' },
+                    { rating: 4, comment: 'Clean, modern, and has everything you need. The lack of natural light in some areas is my only complaint.' },
+                    { rating: 5, comment: 'Perfect for deep-focus study. The booths are great for privacy.' }
+                ],
+                internet: 'Very fast and stable Wi-Fi with excellent coverage.',
+                outlets: 'Outlets are abundant and located at almost every study desk and booth.',
+                music: 'No music. The atmosphere is generally silent or with very low ambient noise.'
+            },
+            'Data Science and AI': {
+                name: 'Data Science and AI',
+                imageUrl: 'https://i.imgur.com/VtKNNOe.jpeg',
+                tags: ['collaborative', 'group work', 'techy', 'spacious'],
+                aiOverview: 'This location is highly recommended for group projects and collaborative work due to its open layout and large tables. The tech-focused amenities and modern feel are a big plus for users.',
+                reviews: [
+                    { rating: 4, comment: 'Awesome for team meetings. We can spread out our laptops and papers without being cramped.' },
+                    { rating: 5, comment: 'I love the high-tech feel of this building. It\'s clean and usually has a productive buzz.' },
+                    { rating: 3, comment: 'A little too loud for me to study on my own. I prefer a quieter spot.' }
+                ],
+                internet: 'Excellent, high-speed Wi-Fi designed for research and data-heavy tasks.',
+                outlets: 'Power outlets are integrated into tables and walls, making them easily accessible.',
+                music: 'No music. The sound level is often moderate due to students chatting.'
+            },
+            
+            'Corec': {
+                name: 'Corec',
+                imageUrl: 'https://i.imgur.com/qzEkhEl.png',
+                tags: ['energetic', 'lively', 'gym access', 'open space'],
+                aiOverview: 'Reviewers mention the Corec as a convenient spot for studying after a workout. The environment is energetic and lively, making it suitable for quick reading or light work.',
+                reviews: [
+                    { rating: 4, comment: 'Perfect place to finish up some homework after my workout. Can be loud but that doesn\'t bother me.' },
+                    { rating: 3, comment: 'Okay for a quick stop, but not ideal for long study sessions due to the noise.' }
+                ],
+                internet: 'Wi-Fi is accessible but can be slow due to the high number of users.',
+                outlets: 'Outlets are scattered and can be difficult to find. Not every study area has one.',
+                music: 'Loud, energetic gym music plays throughout the day.'
+            },
+            'Krach': {
+                name: 'Krach',
+                imageUrl: 'https://i.imgur.com/0BVFlrN.png',
+                tags: ['group work', 'busy', 'social', 'food options'],
+                aiOverview: 'Krach is a popular, bustling location for group projects. The large collaborative spaces and nearby food options are highly valued by students.',
+                reviews: [
+                    { rating: 4, comment: 'My go-to spot for group meetings. The tables are big enough for all our laptops and books.' },
+                    { rating: 5, comment: 'Always a good energy here, even when it\'s packed. I like studying with a bit of a buzz.' }
+                ],
+                internet: 'Strong and fast Wi-Fi for group collaboration and research.',
+                outlets: 'Many outlets available, especially at the large group tables and along the walls.',
+                music: 'No music, but the area is often very loud with conversations and group discussions.'
+            },
+            
+            'Underground library': {
+                name: 'Underground library',
+                imageUrl: 'https://i.imgur.com/sBXIiV8.png',
+                tags: ['deep focus', 'quiet', 'solitary', 'historic'],
+                aiOverview: 'The Underground Library is a legendary spot for serious, solitary study. Users describe the atmosphere as intense and focused, with minimal distractions, making it ideal for exam prep or difficult assignments.',
+                reviews: [
+                    { rating: 5, comment: 'The best place to truly concentrate. You can feel the focus in the air. Absolutely no distractions.' },
+                    { rating: 5, comment: 'I come here for every final exam season. It is a no-nonsense study spot that helps me get into the zone.' }
+                ],
+                internet: 'Wi-Fi is stable and fast enough for research and academic work.',
+                outlets: 'Outlets are available at most desks and booths, making them accessible to students.',
+                music: 'No music at all. This is a designated silent study area.'
+            }
+        };
+
+        function showMessage(message, type = 'success') {
+            messageBox.textContent = message;
+            messageBox.className = `fixed top-5 left-1/2 transform -translate-x-1/2 p-4 rounded-lg shadow-xl text-white font-semibold transition-all duration-300 ease-in-out opacity-100 z-50 ${type === 'success' ? 'bg-green-500' : 'bg-red-500'}`;
+            
+            setTimeout(() => {
+                messageBox.className = `fixed top-5 left-1/2 transform -translate-x-1/2 p-4 rounded-lg shadow-xl text-white font-semibold transition-all duration-300 ease-in-out -translate-y-20 opacity-0 z-50`;
+            }, 3000);
+        }
+
+        function showView(viewName) {
+            // Hide all views first
+            listView.classList.add('hidden');
+            mapView.classList.add('hidden');
+            quizView.classList.add('hidden');
+            
+            // Show all cards when switching to list view
+            listCards.forEach(card => card.style.display = 'block');
+            searchInput.value = ''; // Clear search input
+            
+            // Remove active style from all nav buttons
+            navButtons.forEach(button => {
+                button.classList.remove('bg-white', 'text-gray-700', 'shadow-md');
+                button.classList.add('text-gray-500');
+            });
+
+            // Show the selected view and set the active button style
+            if (viewName === 'list') {
+                listView.classList.remove('hidden');
+                navButtons[0].classList.remove('text-gray-500');
+                navButtons[0].classList.add('bg-white', 'text-gray-700', 'shadow-md');
+            } else if (viewName === 'map') {
+                mapView.classList.remove('hidden');
+                navButtons[1].classList.remove('text-gray-500');
+                navButtons[1].classList.add('bg-white', 'text-gray-700', 'shadow-md');
+            } else if (viewName === 'quiz') {
+                quizView.classList.remove('hidden');
+                navButtons[2].classList.remove('text-gray-500');
+                navButtons[2].classList.add('bg-white', 'text-gray-700', 'shadow-md');
+            }
+        }
+
+        function showDetailView(spotId) {
+            const spot = studySpots[spotId];
+            if (spot) {
+                detailImage.src = spot.imageUrl;
+                detailTitle.textContent = spot.name;
+                tagsContainer.innerHTML = ''; // Clear previous tags
+                spot.tags.forEach(tag => {
+                    const tagSpan = document.createElement('span');
+                    tagSpan.textContent = `#${tag}`;
+                    tagSpan.className = 'bg-gray-200 text-gray-700 text-sm font-semibold px-3 py-1 rounded-full';
+                    tagsContainer.appendChild(tagSpan);
+                });
+
+                // Populate AI Overview
+                aiOverviewContainer.textContent = spot.aiOverview;
+                
+                // Populate Amenities & Environment
+                connectivityDetails.innerHTML = `<strong>Internet:</strong> ${spot.internet}`;
+                outletsDetails.innerHTML = `<strong>Outlets:</strong> ${spot.outlets}`;
+                musicDetails.innerHTML = `<strong>Music:</strong> ${spot.music}`;
+
+                // Populate Reviews
+                reviewsContainer.innerHTML = ''; // Clear previous reviews
+                spot.reviews.forEach(review => {
+                    const reviewDiv = document.createElement('div');
+                    reviewDiv.className = 'border-b border-gray-200 pb-4 last:border-b-0';
+                    reviewDiv.innerHTML = `
+                        <div class="flex items-center mb-1">
+                            ${'⭐'.repeat(review.rating)}
+                        </div>
+                        <p class="text-sm text-gray-600">${review.comment}</p>
+                    `;
+                    reviewsContainer.appendChild(reviewDiv);
+                });
+
+                detailView.classList.add('active');
+                appContainer.style.display = 'none'; // Hide the list view
+            }
+        }
+
+        function hideDetailView() {
+            detailView.classList.remove('active');
+            appContainer.style.display = 'block'; // Show the list view
+        }
+        
+        function findNook() {
+            const amenity1 = document.getElementById('amenity-1').value;
+            const amenity2 = document.getElementById('amenity-2').value;
+            const amenity3 = document.getElementById('amenity-3').value;
+
+            if (amenity1 === amenity2 || amenity1 === amenity3 || amenity2 === amenity3) {
+                 showMessage('Please select unique amenities for each rank.', 'error');
+                 return;
+            }
+            
+            // Get all study spot IDs
+            const spotIds = Object.keys(studySpots);
+            // Select a random spot ID
+            const randomSpotId = spotIds[Math.floor(Math.random() * spotIds.length)];
+
+            // Go directly to the detail view for the random spot
+            showDetailView(randomSpotId);
+        }
+
+        function filterSpots() {
+            const searchTerm = searchInput.value.toLowerCase();
+            listCards.forEach(card => {
+                const title = card.querySelector('h2').textContent.toLowerCase();
+                if (title.includes(searchTerm)) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        }
+
+        // Event listeners for buttons
+        document.addEventListener('DOMContentLoaded', () => {
+            const selectButtons = document.querySelectorAll('[data-spot-id]');
+            const findNookButton = document.getElementById('find-nook-btn');
+            const hideDetailButton = document.getElementById('hide-detail-btn');
+            const addFavoriteButton = document.getElementById('add-favorite-btn');
+
+            selectButtons.forEach(button => {
+                button.addEventListener('click', (e) => {
+                    const spotId = e.currentTarget.dataset.spotId;
+                    showDetailView(spotId);
+                });
+            });
+
+            if (findNookButton) {
+                findNookButton.addEventListener('click', findNook);
+            }
+            if (hideDetailButton) {
+                hideDetailButton.addEventListener('click', hideDetailView);
+            }
+            if (addFavoriteButton) {
+                addFavoriteButton.addEventListener('click', () => showMessage('Added to favorites!'));
+            }
+
+            // Event listener for the search bar
+            if (searchInput) {
+                searchInput.addEventListener('input', filterSpots);
+            }
+        });
+
+        // Show the list view on initial load
+        window.onload = () => {
+             showView('list');
+        };
+    </script>
+</body>
+</html>
